@@ -1,5 +1,15 @@
 {
   "name": "bushof-monitor",
-  "version": "1.0.0",
-  "private": true
+  "version": "2.0.0",
+  "private": true,
+  "description": "Live-Abfahrtsmonitor für den Aachener Bushof",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "demo": "DEMO=1 node server.js",
+    "test": "node --test test/"
+  }
 }
