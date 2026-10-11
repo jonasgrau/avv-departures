@@ -1,0 +1,20 @@
+name: Live-Prüfung
+
+# Daily check of the live site and the AVV data source. A failed run makes
+# GitHub send an e-mail to whoever last changed this schedule.
+on:
+  schedule:
+    # 06:00 UTC = 07:00/08:00 in Aachen, when buses are running
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/healthcheck.js https://bushof-monitor.vercel.app
