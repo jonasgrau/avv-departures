@@ -2,3 +2,5 @@ node_modules/
 .claude/
 .vercel/
 .DS_Store
+.env*
+*.log
