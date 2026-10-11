@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
-  parseStationBoard, parseMessages, parseLocMatch, stationName, isStationId, hafasTimeToMs, htmlToText, unwrap,
+  parseStationBoard, parseMessages, parseLocMatch, resolvePlatform, stationName, isStationId, hafasTimeToMs, htmlToText, unwrap,
 } = require("../lib/hafas");
 
 const stationBoard = unwrap(require("./fixtures/stationboard.json"));
@@ -133,4 +133,21 @@ test("isStationId only accepts numeric ids", () => {
   assert.ok(!isStationId("A=1@L=1001@"));
   assert.ok(!isStationId("1001; drop"));
   assert.ok(!isStationId(""));
+});
+
+test("resolvePlatform ignores realtime platform texts that HAFAS cut off", () => {
+  // Seen at Aachen Normaluhr: the realtime text is truncated to 8 bytes
+  assert.deepEqual(resolvePlatform("H.3 (Dunantstr.)", "H.3 (Dun"), { code: "H.3", note: "Dunantstr.", changed: false });
+  assert.deepEqual(resolvePlatform("H.2 (Römerstr.)", ".2 (Rö"), { code: "H.2", note: "Römerstr.", changed: false });
+});
+
+test("resolvePlatform still detects real platform changes", () => {
+  assert.deepEqual(resolvePlatform("H.10", "H.12"), { code: "H.12", note: "", changed: true });
+  assert.deepEqual(resolvePlatform("H.3 (Dunantstr.)", "H.4 (The"), { code: "H.4", note: "", changed: true });
+});
+
+test("resolvePlatform handles missing scheduled or realtime platforms", () => {
+  assert.deepEqual(resolvePlatform("6", undefined), { code: "6", note: "", changed: false });
+  assert.deepEqual(resolvePlatform(undefined, "H.7"), { code: "H.7", note: "", changed: false });
+  assert.deepEqual(resolvePlatform(undefined, undefined), { code: "", note: "", changed: false });
 });
