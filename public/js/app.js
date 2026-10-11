@@ -1,8 +1,14 @@
-import { createFeed, registerServiceWorker, upcoming, compareLines, esc, formatTime, readList, writeList } from "./core.js";
+import {
+  createFeed, registerServiceWorker, upcoming, compareLines, esc, formatTime, readList, writeList,
+  DEFAULT_STATION, currentStation, stationUrl, recentStations, rememberStation,
+} from "./core.js";
 import { departureRow, noticeText, setTicker } from "./led.js";
+import { setupSearch } from "./search.js";
 
 const MAX_ROWS = 40;
-const LINES_KEY = "bushof.lines";
+const stationId = currentStation();
+// The line filter is remembered per station; the Bushof keeps its original key
+const LINES_KEY = stationId === DEFAULT_STATION ? "bushof.lines" : `bushof.lines.${stationId}`;
 
 const $ = (id) => document.getElementById(id);
 
@@ -11,6 +17,8 @@ let latest = null;
 let selected = new Set(readList(LINES_KEY));
 let renderedChips = "";
 let renderedNotices = "";
+let shownStation = "";
+let remembered = false;
 
 function tickClock() {
   const now = new Date();
@@ -18,11 +26,20 @@ function tickClock() {
   $("clock").dateTime = now.toISOString();
 }
 
+// Station name in the header and the tab title
+
+function showStation(name) {
+  if (!name || name === shownStation) return;
+  shownStation = name;
+  $("station-name").textContent = name;
+  document.title = `${name} · Abfahrten`;
+}
+
 // Status line, only shown when live data is missing
 
 function renderStatus(state) {
   const status = $("status");
-  const problem = state.error || (state.stale ? "Live-Daten gerade nicht erreichbar" : null);
+  const problem = state.notFound ? null : state.error || (state.stale ? "Live-Daten gerade nicht erreichbar" : null);
   status.hidden = !problem;
   if (problem) {
     status.querySelector(".status-text").textContent = state.fetchedAt ? `${problem} · Stand ${formatTime(state.fetchedAt)}` : problem;
@@ -103,6 +120,10 @@ function renderRows(state, departures) {
   const rows = $("rows");
   rows.setAttribute("aria-busy", "false");
 
+  if (state.notFound) {
+    rows.innerHTML = `<li class="placeholder">Haltestelle nicht gefunden<br><a href="/">Zum Bushof</a></li>`;
+    return;
+  }
   if (!state.fetchedAt) {
     rows.innerHTML = `<li class="placeholder">Bitte Aushang beachten<br><button type="button" data-retry>Erneut versuchen</button></li>`;
     return;
@@ -123,11 +144,29 @@ function render(state) {
   renderStatus(state);
   if (state.loading) return;
 
+  if (state.station?.name) {
+    if (!remembered) rememberStation(state.station);
+    remembered = true;
+    showStation(state.station.name);
+  }
+
   const departures = upcoming(state.departures);
   renderFilters(departures);
   renderNotices(state.messages || []);
   renderRows(state, departures);
 }
+
+// Show a known name right away instead of the Bushof placeholder
+showStation(recentStations().find((s) => s.id === stationId)?.name || (stationId === DEFAULT_STATION ? "Aachen, Bushof" : "Haltestelle"));
+$("display-link").href = stationUrl("/anzeige", stationId);
+setupSearch({
+  input: $("search-input"),
+  list: $("search-results"),
+  currentId: stationId,
+  onSelect: (station) => {
+    if (station.id !== stationId) location.href = stationUrl("/", station.id);
+  },
+});
 
 tickClock();
 setInterval(tickClock, 1_000);
@@ -144,5 +183,5 @@ $("rows").addEventListener("click", (event) => {
   if (event.target.closest("[data-retry]")) feed.reload();
   if (event.target.closest("[data-reset]")) setSelection([]);
 });
-feed = createFeed(render);
+feed = createFeed(render, stationId);
 registerServiceWorker();

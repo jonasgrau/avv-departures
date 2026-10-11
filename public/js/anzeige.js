@@ -1,20 +1,28 @@
-import { createFeed, registerServiceWorker, upcoming, formatTime, platformLabel } from "./core.js";
+import {
+  createFeed, registerServiceWorker, upcoming, formatTime, platformLabel,
+  DEFAULT_STATION, currentStation, recentStations,
+} from "./core.js";
 import { departureRow, noticeText, setTicker, fitRows } from "./led.js";
 
-// Optional URL filters, e.g. /anzeige?steig=10,11 or /anzeige?linien=33,47
+// Optional URL parameters, e.g. /anzeige?station=1029, ?steig=10,11 or ?linien=33,47
 const params = new URLSearchParams(location.search);
 const listParam = (name) => (params.get(name) || "").split(",").map((s) => s.trim()).filter(Boolean);
+const stationId = currentStation();
 const onlyLines = new Set(listParam("linien"));
-const onlyPlatforms = new Set(listParam("steig").map((p) => `H.${p.replace(/^H\./i, "")}`));
+const onlyPlatforms = new Set(listParam("steig").map(platformLabel));
 
 const $ = (id) => document.getElementById(id);
 let tickerKey = "";
+let stationName = recentStations().find((s) => s.id === stationId)?.name
+  || (stationId === DEFAULT_STATION ? "Aachen, Bushof" : "");
 
-const stationName = onlyPlatforms.size
-  ? `Bushof Steig ${[...onlyPlatforms].map(platformLabel).join(", ")}`
-  : "Aachen Bushof";
-$("title").textContent = `Abfahrten ${stationName}`;
-document.title = `${stationName} · Anzeige`;
+function showStation(name) {
+  if (name) stationName = name;
+  const label = onlyPlatforms.size ? `${stationName} · Steig ${[...onlyPlatforms].join(", ")}` : stationName;
+  $("title").textContent = `Abfahrten ${label}`;
+  document.title = `${label} · Anzeige`;
+}
+showStation();
 // A board for a single platform does not need the platform column
 document.querySelector(".panel").classList.toggle("no-plat", onlyPlatforms.size === 1);
 
@@ -26,7 +34,9 @@ function tickClock() {
 
 function renderTicker(state, lines) {
   let text = "";
-  if (state.error || state.stale) {
+  if (state.notFound) {
+    text = "";
+  } else if (state.error || state.stale) {
     text = `Keine Verbindung${state.fetchedAt ? ` · Stand ${formatTime(state.fetchedAt)}` : ""}`;
   } else {
     text = noticeText((state.messages || []).filter((m) => m.lines.some((l) => lines.has(l))));
@@ -44,16 +54,22 @@ function renderTicker(state, lines) {
 
 function render(state) {
   if (state.loading) return;
+  if (state.station?.name && state.station.name !== stationName) {
+    showStation(state.station.name);
+    tickerKey = "";
+  }
 
   const now = Date.now();
   const departures = upcoming(state.departures, now).filter(
-    (d) => (!onlyLines.size || onlyLines.has(d.line)) && (!onlyPlatforms.size || onlyPlatforms.has(d.platform)),
+    (d) => (!onlyLines.size || onlyLines.has(d.line)) && (!onlyPlatforms.size || onlyPlatforms.has(platformLabel(d.platform))),
   );
 
   renderTicker(state, new Set(departures.map((d) => d.line)));
 
   const list = $("rows");
-  if (!state.fetchedAt) {
+  if (state.notFound) {
+    list.innerHTML = `<li class="message">Haltestelle nicht gefunden</li>`;
+  } else if (!state.fetchedAt) {
     list.innerHTML = `<li class="message">Bitte Aushang beachten</li>`;
   } else if (!departures.length) {
     list.innerHTML = `<li class="message">Zurzeit keine Abfahrten</li>`;
@@ -91,7 +107,7 @@ let lastState = null;
 createFeed((state) => {
   lastState = state;
   render(state);
-});
+}, stationId);
 window.addEventListener("resize", () => {
   tickerKey = "";
   if (lastState) render(lastState);

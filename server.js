@@ -2,7 +2,7 @@
 const http = require("http");
 const fs = require("fs/promises");
 const path = require("path");
-const { handleDeparturesRequest } = require("./lib/board");
+const { handleDeparturesRequest, handleStationsRequest } = require("./lib/board");
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -47,6 +47,7 @@ async function serveStatic(req, res, pathname) {
 const server = http.createServer((req, res) => {
   const { pathname } = new URL(req.url, "http://localhost");
   if (pathname === "/api/departures") return handleDeparturesRequest(req, res);
+  if (pathname === "/api/stations") return handleStationsRequest(req, res);
   serveStatic(req, res, pathname).catch((err) => {
     console.error(err);
     res.statusCode = 500;

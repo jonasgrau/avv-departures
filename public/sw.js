@@ -1,6 +1,6 @@
 // Network first for the app shell so updates show up immediately;
 // the cache is only the offline fallback. API calls are never cached here.
-const CACHE = "bushof-v3";
+const CACHE = "bushof-v5";
 const SHELL = [
   "/",
   "/anzeige",
@@ -9,6 +9,7 @@ const SHELL = [
   "/css/anzeige.css",
   "/js/core.js",
   "/js/led.js",
+  "/js/search.js",
   "/js/app.js",
   "/js/anzeige.js",
   "/icons/favicon.svg",
