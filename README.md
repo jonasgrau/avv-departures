@@ -1,79 +1,58 @@
-# Aachen Bushof — Abfahrtsmonitor
+# Aachen Bushof – Abfahrten
 
-Real-time departure monitor for Aachen Bushof (central bus station), built with zero dependencies.
+Live departure board for Aachen Bushof, the central bus station in Aachen. No dependencies, no build step.
 
-![Dark themed bus departure board showing live departures with colored line badges, countdown timers, and weather](https://img.shields.io/badge/status-live-brightgreen)
+- **Main view** (`/`): next departures with minutes until departure, line, destination and platform (Steig). Shows delays, cancellations, platform changes and current disruption notices. Lines can be filtered; the selection is remembered. Light and dark theme follow the system setting and can be switched.
+- **Display mode** (`/anzeige`): full-screen board in the style of a classic departure display, meant for a TV or wall screen. Click to toggle fullscreen; the screen is kept awake where the browser supports it.
 
-## Features
+## Display mode options
 
-- **Live departures** — Real-time data from the AVV/ASEAG HAFAS API, refreshed every 30 seconds
-- **Cancellation display** — Cancelled departures shown with strikethrough and "Fällt aus" badge
-- **Line filter chips** — Tap bus lines to filter; selections persist across sessions
-- **Weather widget** — Current temperature and conditions via Open-Meteo (no API key needed)
-- **Progress bars** — Visual countdown on each row, color-shifting from green to red
-- **Smooth animations** — Slide-in rows, minute-bump transitions, pulsing "jetzt" badges
-- **Delay indicators** — Strikethrough scheduled time with realtime update and delay badge
-- **PWA** — Installable on mobile and desktop, works offline with cached shell
-- **Responsive** — Optimized for desktop, tablet, and mobile (4 breakpoints)
-- **Dark theme** — GitHub-dark inspired design with animated header glow
+| URL | Shows |
+| --- | --- |
+| `/anzeige` | all departures |
+| `/anzeige?steig=10,11` | only platforms H.10 and H.11 |
+| `/anzeige?linien=33,47` | only lines 33 and 47 |
 
-## Tech Stack
+## Running locally
 
-- **Frontend**: Single HTML file with embedded CSS + JS (no build step, no framework)
-- **Backend**: Node.js HTTP server / Vercel Serverless Function (zero npm dependencies)
-- **API**: AVV HAFAS `mgate.exe` endpoint
-- **Weather**: Open-Meteo free API
-- **Hosting**: Vercel
-
-## Getting Started
-
-### Local Development
+Requires Node.js 20 or newer.
 
 ```bash
-node server.js
+npm start      # http://localhost:3000
+npm run demo   # fake data incl. delays, cancellations and notices
+npm test       # parser tests against recorded HAFAS responses
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+## Deployment
 
-### Demo Mode
-
-```bash
-DEMO=1 node server.js
-```
-
-Runs with fake departure data — useful for development without API access.
-
-### Deploy to Vercel
+Deploys to Vercel as is: `public/` is served statically and `api/departures.js` becomes a serverless function.
 
 ```bash
 vercel
 ```
 
-The project is pre-configured with `vercel.json` for routing and service worker headers.
-
-## Project Structure
+## How it works
 
 ```
-.
-├── api/
-│   └── departures.js    # Vercel serverless function (HAFAS proxy)
-├── public/
-│   ├── index.html        # Frontend (single-file SPA)
-│   ├── favicon.svg        # Bus icon favicon
-│   ├── manifest.json      # PWA manifest
-│   └── sw.js              # Service worker
-├── server.js              # Local dev server (static files + HAFAS proxy)
-├── vercel.json            # Vercel routing & headers config
-└── package.json
+public/
+  index.html, css/app.css, js/app.js         main view
+  anzeige.html, css/anzeige.css, js/anzeige.js   display mode
+  js/core.js                                  polling, formatting, line colours
+  sw.js                                       offline fallback for the app shell
+lib/
+  hafas.js    AVV HAFAS client and response parsing
+  board.js    caching and the /api/departures handler
+  demo.js     fake data for DEMO=1
+api/departures.js   Vercel function (uses lib/board.js)
+server.js           local server (static files + API)
+test/               node:test suite with recorded fixtures
 ```
 
-## How It Works
-
-1. The backend proxies requests to `https://auskunft.avv.de/bin/mgate.exe` (AVV HAFAS API)
-2. HAFAS returns departure data for station `L=1001` (Aachen Bushof)
-3. The backend parses the response, converts Berlin-timezone times to UTC, and returns clean JSON
-4. The frontend fetches `/api/departures` every 30 seconds and renders a live departure board
-5. Countdown timers update every second with in-place DOM diffing (no full re-renders)
+1. `/api/departures` queries the AVV HAFAS endpoint (`auskunft.avv.de/bin/mgate.exe`) for station `A=1@L=1001@` (Aachen Bushof). Results are cached for 15 seconds.
+2. Disruption notices are fetched with a `HimSearch` request for the message IDs attached to the lines at the station, and refreshed every 5 minutes.
+3. HAFAS times are local Berlin time (hours can exceed 24 after midnight) and are converted to UTC timestamps.
+4. If HAFAS is unreachable, the last good response is returned with `stale: true` and the UI shows its timestamp.
+5. The frontend polls every 30 seconds, pauses in background tabs and updates minute counters every few seconds.
 
 ## License
 

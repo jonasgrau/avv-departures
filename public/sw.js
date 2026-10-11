@@ -1,67 +1,62 @@
-const CACHE_NAME = 'bushof-v1';
-const SHELL_URLS = [
-  '/',
-  '/index.html',
-  '/favicon.svg',
-  '/manifest.json',
+// Network first for the app shell so updates show up immediately;
+// the cache is only the offline fallback. API calls are never cached here.
+const CACHE = "bushof-v2";
+const SHELL = [
+  "/",
+  "/anzeige",
+  "/css/app.css",
+  "/css/anzeige.css",
+  "/js/core.js",
+  "/js/app.js",
+  "/js/anzeige.js",
+  "/icons/favicon.svg",
+  "/manifest.webmanifest",
 ];
+const FONT_HOSTS = ["fonts.googleapis.com", "fonts.gstatic.com"];
 
-// Install: cache the app shell
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS))
-  );
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
   self.skipWaiting();
 });
 
-// Activate: clean up old caches
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      )
-    )
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
   );
-  self.clients.claim();
 });
 
-// Fetch: network-first for API, cache-first for shell
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // API requests: always try network first
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(event.request).catch(() =>
-        new Response(
-          JSON.stringify({
-            departures: [],
-            fetchedAt: Date.now(),
-            error: 'Offline — keine Verbindung',
-          }),
-          {
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
-      )
-    );
-    return;
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE);
+  try {
+    const response = await fetch(request);
+    if (response.ok) cache.put(request, response.clone());
+    return response;
+  } catch (err) {
+    const cached = await cache.match(request, { ignoreSearch: request.mode === "navigate" });
+    if (cached) return cached;
+    throw err;
   }
+}
 
-  // Shell: cache-first, fallback to network
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const networkFetch = fetch(event.request)
-        .then((response) => {
-          // Update cache with fresh version
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return response;
-        })
-        .catch(() => cached);
+async function cacheFirst(request) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok || response.type === "opaque") cache.put(request, response.clone());
+  return response;
+}
 
-      return cached || networkFetch;
-    })
-  );
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  if (request.method !== "GET") return;
+  const url = new URL(request.url);
+
+  if (FONT_HOSTS.includes(url.hostname)) {
+    event.respondWith(cacheFirst(request));
+  } else if (url.origin === location.origin && !url.pathname.startsWith("/api/")) {
+    event.respondWith(networkFirst(request));
+  }
 });

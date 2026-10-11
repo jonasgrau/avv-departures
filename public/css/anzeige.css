@@ -1,0 +1,139 @@
+:root {
+  --bg: #07080a;
+  --row: #0e1013;
+  --text: #f4f1e8;
+  --dim: #8d8a80;
+  --amber: #ffb81c;
+  --red: #ff5a4f;
+  --rule: #1d2025;
+  /* One size drives the whole board so it scales with the screen */
+  --fs: clamp(18px, 2.4vw + 0.6vh, 64px);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  font-family: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: default;
+  -webkit-font-smoothing: antialiased;
+}
+body.hide-cursor { cursor: none; }
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.7em max(1em, env(safe-area-inset-right)) 0.5em max(1em, env(safe-area-inset-left));
+  font-size: var(--fs);
+}
+.station { display: flex; align-items: center; gap: 0.45em; min-width: 0; }
+.stop-sign { width: 1.25em; height: 1.25em; flex: none; }
+h1 { font-size: 1.35em; font-weight: 700; letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clock { font-size: 1.35em; font-weight: 600; letter-spacing: 0.02em; }
+.clock .sec { color: var(--dim); }
+
+.cols, .row {
+  display: grid;
+  grid-template-columns: 4.2em 1fr 3.4em 4.8em;
+  column-gap: 0.8em;
+  align-items: center;
+  padding: 0 max(1em, env(safe-area-inset-right)) 0 max(1em, env(safe-area-inset-left));
+  font-size: var(--fs);
+}
+.cols {
+  height: 1.5em;
+  border-top: 2px solid var(--amber);
+  color: var(--amber);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.cols > span { font-size: 0.55em; letter-spacing: 0.12em; }
+.c { text-align: center; }
+.r { text-align: right; }
+
+.rows { flex: 1; list-style: none; overflow: hidden; }
+.row { height: 2.05em; border-top: 1px solid var(--rule); font-weight: 600; }
+.row:nth-child(odd) { background: var(--row); }
+.row.is-hidden { visibility: hidden; }
+
+.line {
+  justify-self: start;
+  min-width: 2.6em;
+  padding: 0 0.2em;
+  border: 2px solid var(--text);
+  border-radius: 0.2em;
+  text-align: center;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.dest { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.late { margin-left: 0.4em; font-size: 0.6em; color: var(--red); }
+.plat.is-changed { color: var(--red); }
+
+.min { color: var(--amber); font-weight: 700; white-space: nowrap; }
+.min .u { margin-left: 0.15em; font-size: 0.55em; font-weight: 600; color: var(--dim); }
+.row.is-now .min {
+  justify-self: end;
+  padding: 0 0.25em;
+  border-radius: 0.15em;
+  background: var(--amber);
+  color: var(--bg);
+  font-size: 0.8em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.row.is-cancelled .dest, .row.is-cancelled .line, .row.is-cancelled .plat { color: var(--dim); border-color: var(--dim); }
+.row.is-cancelled .min { color: var(--red); font-size: 0.7em; letter-spacing: 0.04em; text-transform: uppercase; }
+
+.message {
+  padding: 3em 1em;
+  font-size: var(--fs);
+  color: var(--dim);
+  text-align: center;
+  list-style: none;
+}
+
+.ticker {
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0.45em 0;
+  background: var(--amber);
+  color: #111;
+  font-size: calc(var(--fs) * 0.7);
+  font-weight: 600;
+}
+.ticker-track { display: inline-block; padding-left: 100%; animation: ticker linear infinite; }
+@keyframes ticker { to { transform: translateX(-100%); } }
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.6em max(2.1em, env(safe-area-inset-right)) max(0.6em, env(safe-area-inset-bottom)) max(2.1em, env(safe-area-inset-left));
+  border-top: 1px solid var(--rule);
+  color: var(--dim);
+  font-size: calc(var(--fs) * 0.48);
+}
+.foot .is-stale { color: var(--red); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; padding-left: 1em; }
+}
+
+@media (max-width: 560px) {
+  :root { --fs: 19px; }
+  .cols, .row { grid-template-columns: 3.1em 1fr 2.2em 2.9em; column-gap: 0.55em; padding-inline: 0.75em; }
+  .top { padding-inline: 0.75em; }
+  h1, .clock { font-size: 1.15em; }
+  .foot { padding-inline: 1.5em; }
+}
