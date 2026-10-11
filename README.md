@@ -45,6 +45,7 @@ public/
   css/led.css, js/led.js                      shared LED look and row rendering
   js/core.js                                  polling, formatting, station helpers
   js/search.js                                station search field
+  fonts/                                      Jersey 10 (SIL OFL), self-hosted instead of Google Fonts
   sw.js                                       offline fallback for the app shell
 lib/
   hafas.js    AVV HAFAS client and response parsing

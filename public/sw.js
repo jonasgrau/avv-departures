@@ -1,6 +1,6 @@
 // Network first for the app shell so updates show up immediately;
 // the cache is only the offline fallback. API calls are never cached here.
-const CACHE = "bushof-v5";
+const CACHE = "bushof-v6";
 const SHELL = [
   "/",
   "/anzeige",
@@ -12,10 +12,11 @@ const SHELL = [
   "/js/search.js",
   "/js/app.js",
   "/js/anzeige.js",
+  "/fonts/jersey10-latin.woff2",
+  "/fonts/jersey10-latin-ext.woff2",
   "/icons/favicon.svg",
   "/manifest.webmanifest",
 ];
-const FONT_HOSTS = ["fonts.googleapis.com", "fonts.gstatic.com"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
@@ -43,23 +44,12 @@ async function networkFirst(request) {
   }
 }
 
-async function cacheFirst(request) {
-  const cache = await caches.open(CACHE);
-  const cached = await cache.match(request);
-  if (cached) return cached;
-  const response = await fetch(request);
-  if (response.ok || response.type === "opaque") cache.put(request, response.clone());
-  return response;
-}
-
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
 
-  if (FONT_HOSTS.includes(url.hostname)) {
-    event.respondWith(cacheFirst(request));
-  } else if (url.origin === location.origin && !url.pathname.startsWith("/api/")) {
+  if (url.origin === location.origin && !url.pathname.startsWith("/api/")) {
     event.respondWith(networkFirst(request));
   }
 });
