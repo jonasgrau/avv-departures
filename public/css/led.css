@@ -25,6 +25,8 @@
   --led-faint: rgba(255, 148, 38, 0.22);
   --led-glow: rgba(255, 140, 26, 0.75);
   --led-off: rgba(255, 140, 26, 0.07);
+  /* Space between the LEDs; slightly see-through so the glow shows */
+  --led-gap: rgba(0, 0, 0, 0.8);
   --bg: #000;
   --fs: 24px;
   /* Distance between LED dots, tied to the font size */
@@ -53,18 +55,24 @@ a { color: inherit; }
   clip: rect(0 0 0 0); white-space: nowrap;
 }
 
-/* Glow goes on the wrapper so it surrounds the lit dots */
-.glow { filter: drop-shadow(0 0 calc(var(--dot) * 0.8) var(--led-glow)); }
-
-/* Cuts text into dots; the mask is static, so moving text lights up fixed LEDs.
-   The faint background shows the unlit LEDs on the same grid. */
+/* LED look: the text glows (text-shadow) and a static grid of holes on top
+   turns it into dots, so moving text lights up fixed LEDs. The faint
+   background shows the unlit LEDs on the same grid.
+   This is a plain painted background instead of mask-image + filter, which
+   browsers struggle to render while scrolling large boards. */
 .led {
+  position: relative;
   background-image: radial-gradient(circle, var(--led-off) 40%, transparent 46%);
   background-size: var(--dot) var(--dot);
-  -webkit-mask-image: radial-gradient(circle, #000 56%, transparent 66%);
-  -webkit-mask-size: var(--dot) var(--dot);
-  mask-image: radial-gradient(circle, #000 56%, transparent 66%);
-  mask-size: var(--dot) var(--dot);
+  text-shadow: 0 0 calc(var(--dot) * 0.6) var(--led-glow), 0 0 calc(var(--dot) * 2) rgba(255, 140, 26, 0.45);
+}
+.led::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, transparent 58%, var(--led-gap) 68%);
+  background-size: var(--dot) var(--dot);
 }
 
 /* Departure row: line, destination, platform, time */
