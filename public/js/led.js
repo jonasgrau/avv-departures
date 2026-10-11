@@ -24,7 +24,8 @@ function spokenLabel(d, now) {
   const mins = minutesUntil(d.departureTimeMs, now);
   const when = d.isCancelled ? "fällt aus" : mins === 0 ? "fährt jetzt ab" : `in ${mins} Minuten`;
   const changed = d.platformChanged ? " (geändert)" : "";
-  const where = d.platform ? `, ${d.isTrain ? "Gleis" : "Steig"} ${platformLabel(d.platform)}${changed}` : "";
+  const note = d.platformNote ? ` (${d.platformNote})` : "";
+  const where = d.platform ? `, ${d.isTrain ? "Gleis" : "Steig"} ${platformLabel(d.platform)}${note}${changed}` : "";
   return `Linie ${d.line} nach ${d.destination}${where}, ${when}`;
 }
 
@@ -34,7 +35,7 @@ export function departureRow(d, now = Date.now(), tag = "li") {
       <span class="sr-only">${esc(spokenLabel(d, now))}</span>
       <span class="dep-line" aria-hidden="true">${esc(d.line)}</span>
       <span class="dep-dest" aria-hidden="true">${d.isCancelled ? "Fahrt fällt aus" : esc(d.destination)}</span>
-      <span class="dep-plat${d.platformChanged ? " is-changed" : ""}" aria-hidden="true">${esc(platformText(d))}</span>
+      <span class="dep-plat${d.platformChanged ? " is-changed" : ""}" aria-hidden="true"${d.platformNote ? ` title="${esc(d.platformNote)}"` : ""}>${esc(platformText(d))}</span>
       <span class="dep-when" aria-hidden="true">${whenText(d, now)}</span>
     </${tag}>`;
 }

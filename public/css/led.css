@@ -78,7 +78,7 @@ a { color: inherit; }
 }
 .dep-line { text-align: right; }
 .dep-dest { overflow: hidden; }
-.dep-plat { text-align: right; min-width: 2em; }
+.dep-plat { text-align: right; min-width: 2em; max-width: 4em; overflow: hidden; }
 .dep-when { text-align: right; }
 .dep-plat.is-changed { animation: blink 1s steps(2, jump-none) infinite; }
 @keyframes blink { 50% { opacity: 0.25; } }
