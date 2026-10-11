@@ -30,6 +30,44 @@ h1 { font-size: 1.5em; font-weight: 400; line-height: 1.1; }
 .status[hidden] { display: none; }
 .status .dot { animation: blink 1.4s steps(2, jump-none) infinite; }
 
+/* Station search */
+
+.search { position: relative; margin-top: 0.5em; font-size: 0.8em; }
+.search-input {
+  width: 100%;
+  padding: 0.3em 0.5em 0.25em;
+  border: 2px solid var(--led-faint);
+  border-radius: 0.2em;
+  background: none;
+  color: var(--led);
+  font: inherit;
+  line-height: 1;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.search-input::placeholder { color: var(--led-dim); opacity: 1; }
+.search-input:focus { border-color: var(--led); }
+.search-input::-webkit-search-cancel-button { display: none; }
+.search-results {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 0.2em);
+  left: 0;
+  right: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--bg);
+  border: 2px solid var(--led);
+  border-radius: 0.2em;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+}
+.search-heading { padding: 0.4em 0.5em 0.2em; color: var(--led-dim); font-size: 0.85em; }
+.search-option { cursor: pointer; padding: 0.35em 0.5em; line-height: 1.1; }
+.search-option:hover, .search-option[aria-selected="true"] { background: var(--led); color: var(--bg); }
+.search-option.is-current::after { content: " ●"; font-size: 0.7em; vertical-align: middle; }
+
 /* Disruption notices: scrolling line plus an expandable list */
 
 .notices { margin: 0.5em 0 0.7em; }
@@ -112,7 +150,10 @@ h1 { font-size: 1.5em; font-weight: 400; line-height: 1.1; }
 .board { padding: 0.3em 0.4em; border: 2px solid #141414; border-radius: 0.25em; }
 .rows { list-style: none; min-height: 6em; }
 .placeholder { padding: 1.5em 0; text-align: center; list-style: none; }
-.placeholder button {
+.placeholder button, .placeholder a {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
   cursor: pointer;
   background: none;
   border: 0;

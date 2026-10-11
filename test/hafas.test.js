@@ -1,6 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { parseStationBoard, parseMessages, hafasTimeToMs, htmlToText, unwrap } = require("../lib/hafas");
+const {
+  parseStationBoard, parseMessages, parseLocMatch, stationName, isStationId, hafasTimeToMs, htmlToText, unwrap,
+} = require("../lib/hafas");
 
 const stationBoard = unwrap(require("./fixtures/stationboard.json"));
 const himSearch = unwrap(require("./fixtures/himsearch.json"));
@@ -64,6 +66,7 @@ test("parseStationBoard reads realtime, cancellation and platform changes", () =
   assert.equal(late.departureTimeMs - late.scheduledTimeMs, 3 * 60_000);
   assert.equal(late.platform, "H.12");
   assert.equal(late.platformChanged, true);
+  assert.equal(late.isTrain, false);
 
   assert.deepEqual([...linesByMessage.get("HIM_1")], ["12", "33"]);
   assert.deepEqual([...linesByMessage.get("HIM_2")], ["33"]);
@@ -92,5 +95,42 @@ test("htmlToText turns markup into plain text", () => {
 
 test("unwrap throws on HAFAS errors", () => {
   assert.throws(() => unwrap({ err: "PARSE", errTxt: "Parse fail" }), /Parse fail/);
-  assert.throws(() => unwrap({ err: "OK", svcResL: [{ err: "LOCATION" }] }), /LOCATION/);
+  assert.throws(() => unwrap({ err: "OK", svcResL: [{ err: "LOCATION" }] }), { code: "LOCATION" });
+});
+
+test("parseStationBoard returns the station itself", () => {
+  const { station } = parseStationBoard(stationBoard);
+  assert.deepEqual(station, { id: "1001", name: "Aachen, Bushof" });
+});
+
+test("parseLocMatch keeps only stations in the AVV area", () => {
+  const loc = (extId, name, lat, lon, type = "S") => ({ extId, name, type, crd: { x: lon * 1e6, y: lat * 1e6 } });
+  const res = {
+    match: {
+      locL: [
+        loc("3061480", "Markt Berolzheim, Friedhof", 49.01, 10.85),
+        loc("1037", "Markt (Judengasse), AC", 50.78, 6.08),
+        loc("4405", "Köln Hbf", 50.94, 6.96),
+        loc("3055", "Eupen, Bushof", 50.63, 6.03),
+        loc("1037", "Markt (Judengasse), AC", 50.78, 6.08),
+        loc("990001", "Ein Ort", 50.78, 6.08, "P"),
+      ],
+    },
+  };
+  assert.deepEqual(parseLocMatch(res), [
+    { id: "1037", name: "Markt (Judengasse), Aachen" },
+    { id: "3055", name: "Eupen, Bushof" },
+  ]);
+});
+
+test("stationName spells out the AC abbreviation", () => {
+  assert.equal(stationName("Ponttor, AC"), "Ponttor, Aachen");
+  assert.equal(stationName("Aachen, Bushof"), "Aachen, Bushof");
+});
+
+test("isStationId only accepts numeric ids", () => {
+  assert.ok(isStationId("1001"));
+  assert.ok(!isStationId("A=1@L=1001@"));
+  assert.ok(!isStationId("1001; drop"));
+  assert.ok(!isStationId(""));
 });

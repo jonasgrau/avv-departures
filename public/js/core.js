@@ -2,6 +2,34 @@
 
 const REFRESH_MS = 30_000;
 const STALE_AFTER_MS = 2 * 60_000;
+const RECENT_KEY = "bushof.recent";
+const MAX_RECENT = 6;
+
+export const DEFAULT_STATION = "1001"; // Aachen Bushof
+
+// The station comes from ?station=<id>; without it we show the Bushof
+export function currentStation() {
+  const id = new URLSearchParams(location.search).get("station");
+  return id && /^\d{1,9}$/.test(id) ? id : DEFAULT_STATION;
+}
+
+export function stationUrl(path, id) {
+  const params = new URLSearchParams(location.search);
+  if (id === DEFAULT_STATION) params.delete("station");
+  else params.set("station", id);
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+export function recentStations() {
+  return readList(RECENT_KEY).filter((s) => s && /^\d{1,9}$/.test(s.id) && s.name);
+}
+
+export function rememberStation(station) {
+  if (!station?.id || !station.name) return;
+  const list = [station, ...recentStations().filter((s) => s.id !== station.id)].slice(0, MAX_RECENT);
+  writeList(RECENT_KEY, list);
+}
 
 export const compareLines = (a, b) => a.localeCompare(b, "de", { numeric: true });
 
@@ -36,11 +64,14 @@ export function writeList(key, list) {
 }
 
 /**
- * Polls /api/departures and calls onChange with
- * { departures, messages, fetchedAt, loading, error, stale }.
+ * Polls /api/departures for one station and calls onChange with
+ * { station, departures, messages, fetchedAt, loading, error, stale }.
  */
-export function createFeed(onChange) {
-  const state = { departures: [], messages: [], fetchedAt: null, loading: true, error: null, stale: false };
+export function createFeed(onChange, stationId = DEFAULT_STATION) {
+  const state = {
+    station: null, departures: [], messages: [], fetchedAt: null,
+    loading: true, error: null, stale: false, notFound: false,
+  };
   let timer = null;
 
   const emit = () => {
@@ -56,8 +87,14 @@ export function createFeed(onChange) {
       return;
     }
     try {
-      const res = await fetch("/api/departures", { cache: "no-store" });
+      const res = await fetch(`/api/departures?station=${encodeURIComponent(stationId)}`, { cache: "no-store" });
       const data = await res.json();
+      if (res.status === 404 || res.status === 400) {
+        // Unknown station: polling again would not help
+        Object.assign(state, { loading: false, notFound: true, error: data.error });
+        emit();
+        return;
+      }
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       Object.assign(state, data, { loading: false, error: null });
     } catch (err) {

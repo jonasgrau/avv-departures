@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Aachen Bushof · Abfahrten</title>
-  <meta name="description" content="Live-Abfahrten aller Busse am Aachener Bushof mit Steig, Ausfällen und Störungsmeldungen." />
+  <meta name="description" content="Live-Abfahrten für den Aachener Bushof und alle Haltestellen im AVV, mit Steig, Ausfällen und Störungsmeldungen." />
   <meta name="theme-color" content="#000000" />
   <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -20,10 +20,18 @@
   <div class="page">
     <header class="top glow">
       <div class="top-row led">
-        <h1>Aachen Bushof</h1>
+        <h1 id="station-name">Aachen, Bushof</h1>
         <time class="clock" id="clock"></time>
       </div>
     </header>
+
+    <div class="search" id="search">
+      <label class="sr-only" for="search-input">Haltestelle suchen</label>
+      <input id="search-input" class="search-input" type="search" placeholder="Andere Haltestelle suchen …"
+        role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list"
+        autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" />
+      <ul class="search-results" id="search-results" role="listbox" aria-label="Haltestellen" hidden></ul>
+    </div>
 
     <p class="status" id="status" role="status" hidden><span class="dot" aria-hidden="true"></span><span class="status-text"></span></p>
 
@@ -55,7 +63,7 @@
 
     <footer class="foot">
       <span>Daten: <a href="https://www.avv.de" rel="noopener">AVV</a> / ASEAG</span>
-      <a href="/anzeige">Anzeige-Modus</a>
+      <a href="/anzeige" id="display-link">Anzeige-Modus</a>
     </footer>
   </div>
 </body>
