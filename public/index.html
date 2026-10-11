@@ -4,65 +4,58 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Aachen Bushof · Abfahrten</title>
-  <meta name="description" content="Live-Abfahrten aller Busse am Aachener Bushof mit Steig, Verspätungen und Störungsmeldungen." />
-  <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#0d1014" media="(prefers-color-scheme: dark)" />
+  <meta name="description" content="Live-Abfahrten aller Busse am Aachener Bushof mit Steig, Ausfällen und Störungsmeldungen." />
+  <meta name="theme-color" content="#000000" />
   <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&display=swap" />
+  <link rel="stylesheet" href="/css/led.css" />
   <link rel="stylesheet" href="/css/app.css" />
-  <script>
-    try {
-      const t = localStorage.getItem("bushof.theme");
-      if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
-    } catch {}
-  </script>
   <script type="module" src="/js/app.js"></script>
 </head>
 <body>
-  <div class="wrap">
-    <header class="top">
-      <div class="brand">
-        <svg class="stop-sign" viewBox="0 0 40 40" aria-hidden="true">
-          <circle cx="20" cy="20" r="20" fill="#f4d000" />
-          <path d="M12 10h4.5v8h7v-8H28v20h-4.5v-8h-7v8H12z" fill="#1f7a3a" />
-        </svg>
-        <div>
-          <p class="eyebrow">Abfahrten</p>
-          <h1>Aachen Bushof</h1>
-        </div>
-      </div>
-      <div class="now">
+  <div class="page">
+    <header class="top glow">
+      <div class="top-row led">
+        <h1>Aachen Bushof</h1>
         <time class="clock" id="clock"></time>
-        <p class="status" id="status" role="status"><span class="dot"></span><span class="status-text">Verbinde …</span></p>
       </div>
     </header>
 
-    <div id="alert" aria-live="polite"></div>
-    <div id="messages"></div>
+    <p class="status" id="status" role="status" hidden><span class="dot" aria-hidden="true"></span><span class="status-text"></span></p>
 
-    <nav class="filters" id="filters" aria-label="Nach Linien filtern"></nav>
+    <section class="notices" id="notices" hidden aria-label="Hinweise">
+      <div class="glow"><div class="ticker led" id="ticker" aria-hidden="true"></div></div>
+      <details class="notice-list" id="notice-list">
+        <summary id="notice-summary"></summary>
+        <ul id="notice-items"></ul>
+      </details>
+    </section>
 
-    <section class="board" aria-labelledby="board-title">
-      <h2 id="board-title" class="sr-only">Nächste Abfahrten</h2>
-      <div class="board-head" aria-hidden="true">
-        <span>Abfahrt</span><span>Linie</span><span>Ziel</span><span class="right">Steig</span>
+    <nav class="filter" aria-label="Nach Linien filtern">
+      <div class="filter-bar">
+        <button type="button" class="filter-toggle" id="filter-toggle" aria-expanded="false" aria-controls="filter-panel">Alle Linien</button>
+        <button type="button" class="filter-clear" id="filter-clear" hidden>Filter aufheben</button>
       </div>
-      <ol class="rows" id="rows" aria-busy="true">
-        <li class="row skeleton"></li><li class="row skeleton"></li><li class="row skeleton"></li>
-        <li class="row skeleton"></li><li class="row skeleton"></li><li class="row skeleton"></li>
+      <div class="filter-panel" id="filter-panel" hidden>
+        <p class="filter-hint">Mehrere Linien wählbar</p>
+        <div class="filter-grid" id="filters"></div>
+      </div>
+    </nav>
+
+    <section class="board glow" aria-labelledby="board-title">
+      <h2 id="board-title" class="sr-only">Nächste Abfahrten</h2>
+      <ol class="rows led" id="rows" aria-busy="true">
+        <li class="placeholder">Abfahrten werden geladen</li>
       </ol>
     </section>
 
     <footer class="foot">
-      <span>Daten: <a href="https://www.avv.de" rel="noopener">AVV</a> · ASEAG</span>
-      <span class="foot-links">
-        <a href="/anzeige">Anzeige-Modus</a>
-        <button type="button" id="theme" class="link-button">Darstellung: System</button>
-      </span>
+      <span>Daten: <a href="https://www.avv.de" rel="noopener">AVV</a> / ASEAG</span>
+      <a href="/anzeige">Anzeige-Modus</a>
     </footer>
   </div>
 </body>

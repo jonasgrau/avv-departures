@@ -2,8 +2,10 @@
 
 Live departure board for Aachen Bushof, the central bus station in Aachen. No dependencies, no build step.
 
-- **Main view** (`/`): next departures with minutes until departure, line, destination and platform (Steig). Shows delays, cancellations, platform changes and current disruption notices. Lines can be filtered; the selection is remembered. Light and dark theme follow the system setting and can be switched.
-- **Display mode** (`/anzeige`): full-screen board in the style of a classic departure display, meant for a TV or wall screen. Click to toggle fullscreen; the screen is kept awake where the browser supports it.
+Both views look like the amber LED matrix displays at Aachen bus stops: line, destination, platform and minutes until departure, with clock times for departures without live data and "Fahrt fällt aus" for cancellations.
+
+- **Main view** (`/`): next departures plus a line filter (remembered per browser) and the current disruption notices as a scrolling line and an expandable list.
+- **Display mode** (`/anzeige`): full-screen board for a TV or wall screen. Click to toggle fullscreen; the screen is kept awake where the browser supports it.
 
 ## Display mode options
 
@@ -37,7 +39,8 @@ vercel
 public/
   index.html, css/app.css, js/app.js         main view
   anzeige.html, css/anzeige.css, js/anzeige.js   display mode
-  js/core.js                                  polling, formatting, line colours
+  css/led.css, js/led.js                      shared LED look and row rendering
+  js/core.js                                  polling and formatting
   sw.js                                       offline fallback for the app shell
 lib/
   hafas.js    AVV HAFAS client and response parsing
