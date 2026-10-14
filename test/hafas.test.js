@@ -24,6 +24,12 @@ test("hafasTimeToMs handles the DST switch night", () => {
   assert.equal(hafasTimeToMs("20261025", "040000"), Date.parse("2026-10-25T03:00:00Z"));
 });
 
+test("hafasTimeToMs handles the hour before the clocks change", () => {
+  // 01:30 is still CEST in October and still CET in March
+  assert.equal(hafasTimeToMs("20261025", "013000"), Date.parse("2026-10-24T23:30:00Z"));
+  assert.equal(hafasTimeToMs("20260329", "013000"), Date.parse("2026-03-29T00:30:00Z"));
+});
+
 test("hafasTimeToMs returns null for missing values", () => {
   assert.equal(hafasTimeToMs("20260111", undefined), null);
 });
@@ -144,6 +150,8 @@ test("resolvePlatform ignores realtime platform texts that HAFAS cut off", () =>
 test("resolvePlatform still detects real platform changes", () => {
   assert.deepEqual(resolvePlatform("H.10", "H.12"), { code: "H.12", note: "", changed: true });
   assert.deepEqual(resolvePlatform("H.3 (Dunantstr.)", "H.4 (The"), { code: "H.4", note: "", changed: true });
+  assert.deepEqual(resolvePlatform("H.10", "H.1"), { code: "H.1", note: "", changed: true });
+  assert.deepEqual(resolvePlatform("H.12", "H.1"), { code: "H.1", note: "", changed: true });
 });
 
 test("resolvePlatform handles missing scheduled or realtime platforms", () => {
