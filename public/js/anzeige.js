@@ -8,8 +8,11 @@ import { departureRow, noticeText, setTicker, fitRows } from "./led.js";
 const params = new URLSearchParams(location.search);
 const listParam = (name) => (params.get(name) || "").split(",").map((s) => s.trim()).filter(Boolean);
 const stationId = currentStation();
-const onlyLines = new Set(listParam("linien"));
-const onlyPlatforms = new Set(listParam("steig").map(platformLabel));
+// Case and an "H" or "H." prefix do not matter: sb63 = SB63, H10 = H.10 = 10
+const lineKey = (line) => String(line).toUpperCase();
+const platformKey = (p) => platformLabel(p).replace(/^H\.?/i, "").toUpperCase();
+const onlyLines = new Set(listParam("linien").map(lineKey));
+const onlyPlatforms = new Set(listParam("steig").map(platformKey));
 
 const $ = (id) => document.getElementById(id);
 let tickerKey = "";
@@ -61,7 +64,7 @@ function render(state) {
 
   const now = Date.now();
   const departures = upcoming(state.departures, now).filter(
-    (d) => (!onlyLines.size || onlyLines.has(d.line)) && (!onlyPlatforms.size || onlyPlatforms.has(platformLabel(d.platform))),
+    (d) => (!onlyLines.size || onlyLines.has(lineKey(d.line))) && (!onlyPlatforms.size || onlyPlatforms.has(platformKey(d.platform))),
   );
 
   renderTicker(state, new Set(departures.map((d) => d.line)));

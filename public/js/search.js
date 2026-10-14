@@ -8,6 +8,10 @@ export function setupSearch({ input, list, currentId, onSelect }) {
   let active = -1;
   let timer = null;
   let controller = null;
+  // Enter before the results for the typed text arrive picks the first one
+  // as soon as they do, not an entry of the list still shown
+  let pending = false;
+  let enterWhenReady = false;
 
   function open(newItems, heading) {
     items = newItems;
@@ -54,9 +58,16 @@ export function setupSearch({ input, list, currentId, onSelect }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       if (input.value.trim() !== query) return;
+      pending = false;
       open(data.stations, data.stations.length ? null : "Keine Haltestelle im AVV gefunden");
+      if (enterWhenReady) {
+        enterWhenReady = false;
+        choose(0);
+      }
     } catch (err) {
-      if (err.name !== "AbortError") open([], "Suche gerade nicht möglich");
+      if (err.name === "AbortError" || input.value.trim() !== query) return;
+      pending = enterWhenReady = false;
+      open([], "Suche gerade nicht möglich");
     }
   }
 
@@ -71,7 +82,9 @@ export function setupSearch({ input, list, currentId, onSelect }) {
   input.addEventListener("input", () => {
     clearTimeout(timer);
     const query = input.value.trim();
-    if (query.length < 2) return showRecent();
+    enterWhenReady = false;
+    pending = query.length >= 2;
+    if (!pending) return showRecent();
     timer = setTimeout(() => search(query), DEBOUNCE_MS);
   });
 
@@ -89,7 +102,9 @@ export function setupSearch({ input, list, currentId, onSelect }) {
       highlight(active - 1);
     } else if (event.key === "Enter") {
       event.preventDefault();
-      choose(active >= 0 ? active : 0);
+      if (active >= 0) choose(active);
+      else if (pending) enterWhenReady = true;
+      else choose(0);
     } else if (event.key === "Escape") {
       if (!list.hidden) close();
       else input.value = "";
