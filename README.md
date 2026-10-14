@@ -32,7 +32,7 @@ npm run healthcheck [url]   # checks the live site (default: production)
 ## Automated checks
 
 - **Tests** (`.github/workflows/test.yml`): `npm test` runs on every pull request and every push to `main`.
-- **Live check** (`.github/workflows/healthcheck.yml`): every morning at 06:00 UTC, `scripts/healthcheck.js` loads the production site, the Bushof departures and the station search. If something fails, it also queries the AVV endpoint directly and reports whether the deployment or the data source is broken. GitHub e-mails a failed run to whoever last changed the schedule. It can also be started by hand under *Actions → Live-Prüfung → Run workflow*.
+- **Live check** (`.github/workflows/healthcheck.yml`): every morning at 06:00 UTC, `scripts/healthcheck.js` loads the main page, the display mode, the Bushof departures and the station search. A failed check is tried again after 30 seconds. If it still fails, the script queries the AVV endpoint directly for departures and search and reports whether the deployment or the data source is broken. GitHub e-mails a failed run to whoever last changed the schedule. It can also be started by hand under *Actions → Live-Prüfung → Run workflow*.
 
 GitHub pauses scheduled workflows in repositories without activity for 60 days; re-enable it under *Actions* if that happens.
 

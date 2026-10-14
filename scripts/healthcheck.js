@@ -4,10 +4,13 @@
 //
 //   node scripts/healthcheck.js [base-url]
 
-const { fetchStationBoard } = require("../lib/hafas");
+const { setTimeout: sleep } = require("node:timers/promises");
+const { fetchStationBoard, searchStations } = require("../lib/hafas");
 
 const BASE_URL = (process.argv[2] || process.env.HEALTHCHECK_URL || "https://bushof-monitor.vercel.app").replace(/\/$/, "");
 const TIMEOUT_MS = 20_000;
+// A failed check is tried once more, so a short AVV hiccup is no alarm
+const RETRY_DELAY_MS = 30_000;
 
 // Unique query parameter so the CDN cache does not hide a broken function
 const bust = () => `_=${Date.now()}`;
@@ -33,6 +36,15 @@ const checks = [
     },
   },
   {
+    name: "Anzeige-Modus lädt",
+    async run() {
+      const res = await fetch(`${BASE_URL}/anzeige`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+      const html = await res.text();
+      if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+      if (!html.includes("/js/anzeige.js")) throw new Error("Seite enthält nicht die erwartete Anzeige");
+    },
+  },
+  {
     name: "Abfahrten am Bushof",
     async run() {
       const { status, data, body } = await getJson(`/api/departures?${bust()}`);
@@ -54,12 +66,33 @@ const checks = [
   },
 ];
 
+// Departures and search use different HAFAS methods, so both are asked
 async function diagnoseHafas() {
+  const probes = [
+    ["Abfahrten", async () => `${(await fetchStationBoard()).departures.length} Abfahrten`],
+    ["Suche", async () => `${(await searchStations("Elisenbrunnen")).length} Treffer`],
+  ];
+  const lines = [];
+  let broken = 0;
+  for (const [name, probe] of probes) {
+    try {
+      lines.push(`  ✓ ${name} (${await probe()})`);
+    } catch (err) {
+      broken++;
+      lines.push(`  ✗ ${name}: ${err.message}`);
+    }
+  }
+  const verdict = broken
+    ? "Vermutlich hat der AVV etwas geändert oder ist gestört."
+    : "Das Problem liegt eher beim Deployment.";
+  return `AVV-Schnittstelle direkt abgefragt:\n${lines.join("\n")}\n${verdict}`;
+}
+
+async function runCheck(check) {
   try {
-    const { departures } = await fetchStationBoard();
-    return `AVV-Schnittstelle direkt abgefragt: funktioniert (${departures.length} Abfahrten). Das Problem liegt eher beim Deployment.`;
+    return { ok: true, detail: await check.run() };
   } catch (err) {
-    return `AVV-Schnittstelle direkt abgefragt: Fehler (${err.message}). Vermutlich hat der AVV etwas geändert oder ist gestört.`;
+    return { ok: false, error: err.message };
   }
 }
 
@@ -68,12 +101,17 @@ async function main() {
   let failed = 0;
 
   for (const check of checks) {
-    try {
-      const detail = await check.run();
-      console.log(`✓ ${check.name}${detail ? ` (${detail})` : ""}`);
-    } catch (err) {
+    let result = await runCheck(check);
+    if (!result.ok) {
+      console.log(`… ${check.name}: ${result.error}, neuer Versuch in ${RETRY_DELAY_MS / 1000} s`);
+      await sleep(RETRY_DELAY_MS);
+      result = await runCheck(check);
+    }
+    if (result.ok) {
+      console.log(`✓ ${check.name}${result.detail ? ` (${result.detail})` : ""}`);
+    } else {
       failed++;
-      console.log(`✗ ${check.name}: ${err.message}`);
+      console.log(`✗ ${check.name}: ${result.error}`);
     }
   }
 

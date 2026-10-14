@@ -11,10 +11,10 @@ on:
 jobs:
   healthcheck:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
       - run: node scripts/healthcheck.js https://bushof-monitor.vercel.app
