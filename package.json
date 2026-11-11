@@ -1,9 +1,10 @@
 {
-  "name": "bushof-monitor",
+  "name": "avv-departures",
   "version": "2.0.0",
   "private": true,
-  "description": "Live-Abfahrtsmonitor für den Aachener Bushof",
+  "description": "Live departure board for Aachen and the AVV area, styled like the amber LED displays at the bus stops",
   "license": "MIT",
+  "repository": "github:jonasgrau/avv-departures",
   "engines": {
     "node": ">=20"
   },
