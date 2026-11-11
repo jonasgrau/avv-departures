@@ -1,77 +1,71 @@
-# Aachen Bushof – Abfahrten
+# AVV Departures
 
-Live departure board for Aachen Bushof, the central bus station in Aachen, and every other stop in the AVV area (Aachen, Städteregion, Düren, Heinsberg and the border region). No dependencies, no build step.
+Live departure board for Aachen and the whole AVV area, styled like the amber LED displays at the bus stops.
 
-Both views look like the amber LED matrix displays at Aachen bus stops: line, destination, platform and minutes until departure, with clock times for departures without live data and "Fahrt fällt aus" for cancellations.
+**[bushof-monitor.vercel.app](https://bushof-monitor.vercel.app)** · no dependencies · no build step
 
-- **Main view** (`/`): starts at the Bushof. A search field switches to any other stop (`/?station=1029`) and remembers recently viewed ones. Next departures, a line filter (remembered per stop) and the current disruption notices as a scrolling line and an expandable list. At train stations the platform column shows tracks (`Gl6`).
-- **Display mode** (`/anzeige`): full-screen board for a TV or wall screen. Click to toggle fullscreen; the screen is kept awake where the browser supports it.
+<p align="center">
+  <img src="docs/display-mode.jpg" alt="Display mode: amber LED board with line, destination, platform and minutes until departure" width="720">
+</p>
 
-## Display mode options
+## Features
+
+- **Every stop in the AVV area**: Aachen, Städteregion, Düren, Heinsberg and the border region. It starts at Aachen Bushof; the search switches to any other stop and remembers recent ones.
+- **Real-time data**: minutes until departure, clock times where no live data exists, cancellations shown as "Fahrt fällt aus", platforms and tracks.
+- **Disruption notices** as a scrolling LED line, with the full list one tap away.
+- **Line filter**, remembered per stop.
+- **Display mode** for a TV or wall screen: full screen, keeps the screen awake, filterable by platform and line.
+- **Works offline** for the app shell and keeps showing the last data (marked as stale) if the data source is down.
+
+<img src="docs/main-view.jpg" alt="Main view on a phone: stop search, notices, line filter and the departure list" width="300" align="right">
+
+## Display mode
+
+Open `/anzeige` and click to toggle full screen. URL parameters can be combined:
 
 | URL | Shows |
 | --- | --- |
-| `/anzeige` | all departures at the Bushof |
-| `/anzeige?station=1029` | another stop (id from the main view's URL) |
+| `/anzeige` | all departures at Aachen Bushof |
+| `/anzeige?station=1029` | another stop (the id is in the main view's URL) |
 | `/anzeige?steig=10,11` | only platforms H.10 and H.11 |
 | `/anzeige?linien=33,47` | only lines 33 and 47 |
 
-Parameters can be combined, e.g. `/anzeige?station=1029&steig=1`.
-
-## Running locally
+## Run it locally
 
 Requires Node.js 20 or newer.
 
 ```bash
 npm start      # http://localhost:3000
-npm run demo   # fake data incl. delays, cancellations and notices
-npm test       # parser tests against recorded HAFAS responses
-npm run healthcheck [url]   # checks the live site (default: production)
+npm run demo   # fake data with delays, cancellations and notices
+npm test       # parser tests against recorded responses
 ```
 
-## Automated checks
+Deploys to Vercel as is: `public/` is served statically, `api/` becomes serverless functions.
 
-- **Tests** (`.github/workflows/test.yml`): `npm test` runs on every pull request and every push to `main`.
-- **Live check** (`.github/workflows/healthcheck.yml`): every morning at 06:00 UTC, `scripts/healthcheck.js` loads the main page, the display mode, the Bushof departures and the station search. A failed check is tried again after 30 seconds. If it still fails, the script queries the AVV endpoint directly for departures and search and reports whether the deployment or the data source is broken. GitHub e-mails a failed run to whoever last changed the schedule. It can also be started by hand under *Actions → Live-Prüfung → Run workflow*.
-
-GitHub pauses scheduled workflows in repositories without activity for 60 days; re-enable it under *Actions* if that happens.
-
-## Deployment
-
-Deploys to Vercel as is: `public/` is served statically and `api/departures.js` becomes a serverless function.
-
-```bash
-vercel
-```
+<br clear="right">
 
 ## How it works
 
+The server talks to the AVV's public HAFAS endpoint (`auskunft.avv.de/bin/mgate.exe`), the same one the official AVV app uses, and turns its responses into a small JSON API:
+
+- `GET /api/departures?station=<id>` returns the next departures and disruption notices. Results are cached for 15 seconds per stop; if HAFAS is unreachable, the last good response comes back with `stale: true`.
+- `GET /api/stations?q=<query>` searches stops within the AVV area.
+
+The frontend is plain HTML, CSS and JavaScript. It polls every 30 seconds, pauses in background tabs and renders the LED look with CSS only, using the [Jersey 10](https://fonts.google.com/specimen/Jersey+10) font (self-hosted, SIL OFL).
+
 ```
-public/
-  index.html, css/app.css, js/app.js         main view
-  anzeige.html, css/anzeige.css, js/anzeige.js   display mode
-  css/led.css, js/led.js                      shared LED look and row rendering
-  js/core.js                                  polling, formatting, station helpers
-  js/search.js                                station search field
-  fonts/                                      Jersey 10 (SIL OFL), self-hosted instead of Google Fonts
-  sw.js                                       offline fallback for the app shell
-lib/
-  hafas.js    AVV HAFAS client and response parsing
-  board.js    caching and the /api/departures handler
-  demo.js     fake data for DEMO=1
-api/departures.js   Vercel function: GET /api/departures?station=<id>
-api/stations.js     Vercel function: GET /api/stations?q=<query>
-server.js           local server (static files + API)
-test/               node:test suite with recorded fixtures
+public/   main view, display mode, LED styles, service worker
+lib/      HAFAS client and parsing, caching, demo data
+api/      Vercel functions
+test/     node:test suite with recorded HAFAS responses
 ```
 
-1. `/api/departures?station=<id>` queries the AVV HAFAS endpoint (`auskunft.avv.de/bin/mgate.exe`) for that stop; without a station it uses `1001` (Aachen Bushof). Results are cached per stop for 15 seconds.
-2. `/api/stations?q=` uses HAFAS `LocMatch` and keeps only stops inside a bounding box around the AVV area. Searches are cached for a day.
-3. Disruption notices are fetched with a `HimSearch` request for the message IDs attached to the lines at the station, and refreshed every 5 minutes.
-4. HAFAS times are local Berlin time (hours can exceed 24 after midnight) and are converted to UTC timestamps.
-5. If HAFAS is unreachable, the last good response is returned with `stale: true` and the UI shows its timestamp.
-6. The frontend polls every 30 seconds, pauses in background tabs and updates minute counters every few seconds.
+GitHub Actions run the tests on every pull request and check the live site every morning.
+
+## Disclaimer
+
+This is a private project and not affiliated with the AVV, ASEAG or any other transport company. It uses an unofficial interface that may change at any time. Departure data © the respective transport companies.
 
 ## License
 
-MIT
+[MIT](LICENSE)
