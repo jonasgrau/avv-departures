@@ -5,7 +5,9 @@ Live departure board for Aachen and the whole AVV area, styled like the amber LE
 **[bushof-monitor.vercel.app](https://bushof-monitor.vercel.app)** · no dependencies · no build step
 
 <p align="center">
-  <img src="docs/display-mode.jpg" alt="Display mode: amber LED board with line, destination, platform and minutes until departure" width="720">
+  <img src="docs/display-mode.jpg" alt="Display mode: amber LED board with line, destination, platform and minutes until departure" height="320">
+  &nbsp;
+  <img src="docs/main-view.jpg" alt="Main view on a phone: stop search, notices, line filter and the departure list" height="320">
 </p>
 
 ## Features
@@ -16,8 +18,6 @@ Live departure board for Aachen and the whole AVV area, styled like the amber LE
 - **Line filter**, remembered per stop.
 - **Display mode** for a TV or wall screen: full screen, keeps the screen awake, filterable by platform and line.
 - **Works offline** for the app shell and keeps showing the last data (marked as stale) if the data source is down.
-
-<img src="docs/main-view.jpg" alt="Main view on a phone: stop search, notices, line filter and the departure list" width="300" align="right">
 
 ## Display mode
 
@@ -41,8 +41,6 @@ npm test       # parser tests against recorded responses
 ```
 
 Deploys to Vercel as is: `public/` is served statically, `api/` becomes serverless functions.
-
-<br clear="right">
 
 ## How it works
 
